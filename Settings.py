@@ -31,4 +31,7 @@ class Settings:
        self.bullet_height = 12
        self.bullet_color = (210,210,160)
 
+       # Scoring 
+       self.alien_points = 50
+
 

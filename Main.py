@@ -3,6 +3,8 @@ from time import sleep
 import pygame
 from Settings import Settings
 from game_stats import GameStats
+from scoreboard import Scoreboard
+from button import Button 
 from Ship import Ship
 from bullet import Bullet
 from Alien import Alien
@@ -17,14 +19,18 @@ class AlienInvasion:
       self.screen=pygame.display.set_mode((self.settings.screen_width, self.settings.screen_height))
       pygame.display.set_caption("Alien Invation")
 
-      #Create an inistance to store statistics.
+      # Create an instance to score game statistics, and a scoreboard.
       self.stats = GameStats(self)
+      self.sb = Scoreboard(self)
 
       self.ship = Ship(self)
       self.bullets = pygame.sprite.Group()
       self.aliens = pygame.sprite.Group()
 
       self.create_fleet()
+
+      # Make the play button 
+      self.play_button = Button(self, "play")
 
   def run_game(self):
       """Start the main loop for the game."""
@@ -47,6 +53,9 @@ class AlienInvasion:
               self._check_keydown_events(event)
           elif event.type == pygame.KEYUP:
               self._check_keydup_events(event)
+          elif event.type == pygame.MOUSEBUTTONDOWN:
+              mouse_pos = pygame.mouse.get_pos()
+              self.check_play_button(mouse_pos)
 
   def _check_keydown_events(self,event):
      #move the ship to the right side 
@@ -73,15 +82,26 @@ class AlienInvasion:
   def update_bullets(self):
       """function for updating the bullets"""
       self.bullets.update()
-    #gitting rid of the old bullets
+      #gitting rid of the old bullets
       for bullet in self.bullets.copy():
          if bullet.rect.bottom <= 0:
              self.bullets.remove(bullet)
       print(len(self.bullets))
+      self.check_bullet_alien_collisions()
+
+  def check_bullet_alien_collisions(self):
+
+         # Check for any bulltes to have hit the aliens, if so get rid of the bullet and the alien
+      collisions = pygame.sprite.groupcollide(self.bullets, self.aliens, True , True)
+
+      if collisions:
+        self.stats.score += self.settings.alien_points
+        self.sb.prep_score()
 
       if not self.aliens:
           #Destroy existing bullets and create new fleet
           self.bullets.empty()
+          self.create_fleet()
           if self.settings.alien_speed<7 and   self.settings.fleet_drop_speed<8:
              self.settings.alien_speed= self.settings.alien_speed+0.5
              self.settings.fleet_drop_speed=self.settings.fleet_drop_speed+0.1
@@ -89,9 +109,6 @@ class AlienInvasion:
              self.settings.alien_speed= self.settings.alien_speed
              self.settings.fleet_drop_speed=self.settings.fleet_drop_speed
           self.create_fleet()
-
-        # Check for any bulltes to have hit the aliens, if so get rid of the bullet and the alien
-      collisions = pygame.sprite.groupcollide(self.bullets, self.aliens, True , True)
 
   def create_fleet(self):
       """create the aliens fleet"""
@@ -173,6 +190,22 @@ class AlienInvasion:
              self._ship_hit()
              break
 
+  def check_play_button(self, mouse_pos):
+      """ Start a new game when the player clicks play"""
+      if self.play_button.rect.collidepoint(mouse_pos):
+          # Reset the game statistics.
+          self.stats.reset_stats()
+          self.stats.game_active = True
+          self.sb.prep_score()
+
+          # Get rid of any aliens or bullets.
+          self.aliens.empty()
+          self.bullets.empty()
+
+          # Create a new fleet and center the ship.
+          self.create_fleet()
+          self.ship.center_ship()
+
 
   def _update_screen(self):
           # Redraw the screen during every pass through the loop
@@ -183,7 +216,15 @@ class AlienInvasion:
               bullet.draw_bullet()
 
           self.aliens.draw(self.screen)
-           # Make the most recently drawn screen visible.
+
+          # Draw the score information.
+          self.sb.show_score()
+
+          # Draw the play button if the game is inactive
+          if not self.stats.game_active:
+              self.play_button.draw_button()
+
+          # Make the most recently drawn screen visible.
           pygame.display.flip()   
           
 if __name__=='__main__':
