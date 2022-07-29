@@ -8,6 +8,7 @@ from button import Button
 from Ship import Ship
 from bullet import Bullet
 from Alien import Alien
+
 class AlienInvasion:
   """Overall class to manage the game."""
 
@@ -95,8 +96,11 @@ class AlienInvasion:
       collisions = pygame.sprite.groupcollide(self.bullets, self.aliens, True , True)
 
       if collisions:
-        self.stats.score += self.settings.alien_points
-        self.sb.prep_score()
+          for aliens in collisions.values():
+             self.stats.score += self.settings.alien_points * len(aliens)
+          self.sb.prep_score()
+          self.sb.check_high_score()
+
 
       if not self.aliens:
           #Destroy existing bullets and create new fleet
@@ -109,6 +113,10 @@ class AlienInvasion:
              self.settings.alien_speed= self.settings.alien_speed
              self.settings.fleet_drop_speed=self.settings.fleet_drop_speed
           self.create_fleet()
+
+          #increase level
+          self.stats.level += 1
+          self.sb.prep_level()
 
   def create_fleet(self):
       """create the aliens fleet"""
@@ -143,6 +151,7 @@ class AlienInvasion:
       if self.stats.ships_left > 0:
           #Decrement ships number left
           self.stats.ships_left -=1
+          self.sb.prep_ships()
           #get rid of remaining aliens and bullets
           self.aliens.empty()
           self.bullets.remove()
@@ -197,6 +206,8 @@ class AlienInvasion:
           self.stats.reset_stats()
           self.stats.game_active = True
           self.sb.prep_score()
+          self.sb.prep_level()
+          self.sb.prep_ships()
 
           # Get rid of any aliens or bullets.
           self.aliens.empty()
